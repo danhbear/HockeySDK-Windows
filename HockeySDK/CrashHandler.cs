@@ -71,7 +71,7 @@ namespace HockeyApp
         public static string UserId { get; set; }
 
         // Call 'await Initialize(this, "HOCKEYAPP_IDENTIFIER")' at the end of your App's OnLaunched method
-        public static async Task Initialize(Application application, string identifier, bool askBeforeSending = true)
+        public static async Task<List<string>> Initialize(Application application, string identifier, bool askBeforeSending = true)
         {
             if (Application != null)
             {
@@ -89,7 +89,9 @@ namespace HockeyApp
             Application.UnhandledException += OnUnhandledException;
             TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 
+            var unsentCrashLogs = await GetUnsentRawCrashLogs();
             await HandleCrashes();
+            return unsentCrashLogs;
         }
 
         private static void OnUnhandledException(object sender, UnhandledExceptionEventArgs args)
@@ -243,6 +245,20 @@ namespace HockeyApp
             {
                 await file.DeleteAsync(StorageDeleteOption.PermanentDelete);
             }
+        }
+
+        // Gets the unsent raw crash logs.
+        public static async Task<List<string>> GetUnsentRawCrashLogs()
+        {
+            var ret = new List<string>();
+            var crashFolder = await StorageFolder.GetFolderFromPathAsync(CrashFolderPath);
+            var allFiles = await crashFolder.GetFilesAsync();
+            var crashFiles = allFiles.Where(f => f.Name.StartsWith("crash") && f.Name.EndsWith(".log")).ToList();
+            foreach (var file in crashFiles)
+            {
+                ret.Add(await FileIO.ReadTextAsync(file));
+            }
+            return ret;
         }
 
         // SaveLog is called from UnhandledException, so it needs to be synchronous. Using P/Invoke
