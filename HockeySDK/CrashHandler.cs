@@ -87,6 +87,7 @@ namespace HockeyApp
             CrashFolderPath = crashFolder.Path;
 
             Application.UnhandledException += OnUnhandledException;
+            TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 
             await HandleCrashes();
         }
@@ -96,6 +97,19 @@ namespace HockeyApp
             try
             {
                 SaveException(args.Message, args.Exception);
+            }
+            catch
+            {
+                // Ignore all uncaught exceptions while handling an exception, otherwise
+                // nasty infinite loops and other bad things might happen
+            }
+        }
+
+        static void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs args)
+        {
+            try
+            {
+                SaveException(args.Exception.Message, args.Exception);
             }
             catch
             {
