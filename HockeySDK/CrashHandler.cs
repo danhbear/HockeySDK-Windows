@@ -37,6 +37,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.ApplicationModel;
 using Windows.Storage;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
@@ -107,9 +108,10 @@ namespace HockeyApp
         {
             var builder = new StringBuilder();
             var assembly = Application.GetType().GetTypeInfo().Assembly;
+            var version = Package.Current.Id.Version;
 
             builder.AppendFormat("Package: {0}\n", assembly.GetCustomAttribute<AssemblyProductAttribute>().Product);
-            builder.AppendFormat("Version: {0}\n", assembly.GetName().Version.ToString());
+            builder.AppendFormat("Version: {0}.{1}.{2}.{3}\n", version.Major, version.Minor, version.Build, version.Revision);
             builder.AppendFormat("Platform: {0}\n", Platform);
             builder.AppendFormat("Manufacturer: {0}\n", DeviceManufacturer);
             builder.AppendFormat("Model: {0}\n", DeviceModel);
