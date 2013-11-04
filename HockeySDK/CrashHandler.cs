@@ -67,6 +67,8 @@ namespace HockeyApp
         private static bool AskBeforeSending;
         private static string CrashFolderPath;
 
+        public static string UserId { get; set; }
+
         // Call 'await Initialize(this, "HOCKEYAPP_IDENTIFIER")' at the end of your App's OnLaunched method
         public static async Task Initialize(Application application, string identifier, bool askBeforeSending = true)
         {
@@ -194,6 +196,10 @@ namespace HockeyApp
                     parameters["raw"] = await FileIO.ReadTextAsync(file);
                     parameters["sdk"] = SdkName;
                     parameters["sdk_version"] = SdkVersion;
+                    if (!String.IsNullOrEmpty(UserId))
+                    {
+                        parameters["userID"] = UserId;
+                    }
                     var content = new FormUrlEncodedContent(parameters);
 
                     try
