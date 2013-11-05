@@ -107,7 +107,7 @@ namespace HockeyApp
             }
         }
 
-        static void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs args)
+        private static void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs args)
         {
             try
             {
@@ -142,10 +142,16 @@ namespace HockeyApp
 
         public static void SaveException(String message, Exception exception)
         {
-            var log = GetLog(message, exception);
-            var filename = String.Format("crash{0}.log", DateTime.UtcNow.ToString("s").Replace(":", "-"));
-            var filepath = Path.Combine(CrashFolderPath, filename);
-            SyncHelpers.WriteFile(filepath, log, Encoding.UTF8);
+            try
+            {
+                var log = GetLog(message, exception);
+                var filename = String.Format("crash{0}.log", DateTime.UtcNow.ToString("s").Replace(":", "-"));
+                SyncHelpers.WriteFile(CrashFolderPath, filename, log, Encoding.UTF8);
+            }
+            catch
+            {
+                // Swallow exceptions during saving a previous exception
+            }
         }
 
         private static async Task HandleCrashes()
@@ -261,27 +267,20 @@ namespace HockeyApp
             return ret;
         }
 
-        // SaveLog is called from UnhandledException, so it needs to be synchronous. Using P/Invoke
-        // with fopen/fwrite/fclose is the easiest way I've found to write a file synchronously using
-        // allowed Windows Store APIs.
+        // SaveLog is called from UnhandledException, so it needs to be synchronous.
         private class SyncHelpers
         {
-            [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-            static extern IntPtr fopen(string filename, string mode);
-            [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-            static extern int fclose(IntPtr file);
-            [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-            static extern IntPtr fwrite(byte[] buffer, IntPtr size, IntPtr number, IntPtr file);
-
-            public static void WriteFile(string path, string text, Encoding encoding)
+            public static void WriteFile(string folderPath, string fileName, string text, Encoding encoding)
             {
+                Task.Run(async () => await WriteFileAsync(folderPath, fileName, text, encoding)).Wait();
+            }
+
+            public static async Task WriteFileAsync(string folderPath, string fileName, string text, Encoding encoding)
+            {
+                var folder = await StorageFolder.GetFolderFromPathAsync(folderPath);
+                var file = await folder.CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting);
                 var bytes = encoding.GetBytes(text);
-                var fp = fopen(path, "wb");
-                if (fp != IntPtr.Zero)
-                {
-                    fwrite(bytes, new IntPtr(1), new IntPtr(bytes.Count()), fp);
-                    fclose(fp);
-                }
+                await FileIO.WriteBytesAsync(file, bytes);
             }
         }
     }
