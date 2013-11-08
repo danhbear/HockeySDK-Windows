@@ -120,7 +120,7 @@ namespace HockeyApp
             }
         }
 
-        private static string GetLog(String message, Exception exception)
+        private static string GetLog(String message, Exception exception, String extraStackTrace)
         {
             var builder = new StringBuilder();
             var assembly = Application.GetType().GetTypeInfo().Assembly;
@@ -135,16 +135,21 @@ namespace HockeyApp
             builder.Append("\n");
             builder.Append(exception.ToString());
             builder.Append("\n");
+            if (!String.IsNullOrEmpty(extraStackTrace))
+            {
+                builder.Append(extraStackTrace);
+                builder.Append("\n");
+            }
             builder.Append(message);
 
             return builder.ToString().Trim();
         }
 
-        public static void SaveException(String message, Exception exception)
+        public static void SaveException(String message, Exception exception, String extraStackTrace = null)
         {
             try
             {
-                var log = GetLog(message, exception);
+                var log = GetLog(message, exception, extraStackTrace);
                 var filename = String.Format("crash{0}.log", DateTime.UtcNow.ToString("s").Replace(":", "-"));
                 SyncHelpers.WriteFile(CrashFolderPath, filename, log, Encoding.UTF8);
             }
