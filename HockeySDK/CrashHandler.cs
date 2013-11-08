@@ -65,6 +65,7 @@ namespace HockeyApp
 
         private static string Identifier;
         private static Application Application;
+        private static bool Initialized;
         private static bool AskBeforeSending;
         private static string CrashFolderPath;
 
@@ -73,10 +74,11 @@ namespace HockeyApp
         // Call 'await Initialize(this, "HOCKEYAPP_IDENTIFIER")' at the end of your App's OnLaunched method
         public static async Task<List<string>> Initialize(Application application, string identifier, bool askBeforeSending = true)
         {
-            if (Application != null)
+            if (Initialized)
             {
                 throw new InvalidOperationException("CrashHandler was already initialized");
             }
+            Initialized = true;
 
             Application = application;
             Identifier = identifier;
@@ -147,6 +149,11 @@ namespace HockeyApp
 
         public static void SaveException(String message, Exception exception, String extraStackTrace = null)
         {
+            if (!Initialized)
+            {
+                return;
+            }
+
             try
             {
                 var log = GetLog(message, exception, extraStackTrace);
