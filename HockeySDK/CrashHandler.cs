@@ -38,6 +38,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
+using Windows.Security.ExchangeActiveSyncProvisioning;
 using Windows.Storage;
 using Windows.UI.Popups;
 using Windows.UI.Xaml;
@@ -58,10 +59,8 @@ namespace HockeyApp
         private const string SdkVersion = "1.0";
         private static readonly TimeSpan KeepLogsAge = TimeSpan.FromDays(2);
 
-        // Apparently device manufacturer/model info is not available to Windows Store apps, see:
-        // http://social.msdn.microsoft.com/Forums/da-DK/winappswithnativecode/thread/dab68444-d609-48b8-9291-cbe152234fc7
-        private const string DeviceManufacturer = "Unknown";
-        private const string DeviceModel = "Unknown";
+        private static string DeviceManufacturer = "Unknown";
+        private static string DeviceModel = "Unknown";
 
         private static string Identifier;
         private static Application Application;
@@ -87,6 +86,25 @@ namespace HockeyApp
             var localFolder = ApplicationData.Current.LocalFolder;
             var crashFolder = await localFolder.CreateFolderAsync(LogsFolderName, CreationCollisionOption.OpenIfExists);
             CrashFolderPath = crashFolder.Path;
+
+            var easClientDeviceInformation = new EasClientDeviceInformation();
+            if (!String.IsNullOrEmpty(easClientDeviceInformation.SystemManufacturer))
+            {
+                DeviceManufacturer = easClientDeviceInformation.SystemManufacturer;
+            }
+            if (!String.IsNullOrEmpty(easClientDeviceInformation.SystemSku) || !String.IsNullOrEmpty(easClientDeviceInformation.SystemProductName))
+            {
+                var modelSB = new StringBuilder();
+                if (!String.IsNullOrEmpty(easClientDeviceInformation.SystemProductName))
+                {
+                    modelSB.Append(easClientDeviceInformation.SystemProductName);
+                }
+                if (!String.IsNullOrEmpty(easClientDeviceInformation.SystemSku))
+                {
+                    modelSB.AppendFormat("{0}({1})", modelSB.Length > 0 ? " " : String.Empty, easClientDeviceInformation.SystemSku);
+                }
+                DeviceModel = modelSB.ToString();
+            }
 
             Application.UnhandledException += OnUnhandledException;
             TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
